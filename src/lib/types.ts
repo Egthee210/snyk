@@ -17,6 +17,7 @@ export interface TestOptions {
   'prune-repeated-subdependencies'?: boolean;
   showVulnPaths: ShowVulnPaths;
   failOn?: FailOn;
+  'reachable-vulns'?: boolean; // TODO add tests
 }
 export interface ProtectOptions {
   loose: boolean;

@@ -21,6 +21,7 @@ import {
   FailedToGetVulnerabilitiesError,
   FailedToGetVulnsFromUnavailableResource,
   FailedToRunTestError,
+  UnsupportedFeatureFlagError,
 } from '../errors';
 import * as snyk from '../';
 import { isCI } from '../is-ci';
@@ -41,8 +42,11 @@ import request = require('../request');
 import spinner = require('../spinner');
 import { extractPackageManager } from '../plugins/extract-package-manager';
 import { getSubProjectCount } from '../plugins/get-sub-project-count';
+import { checkCallGraph } from '../reachable-vulns';
 
 const debug = debugModule('snyk');
+
+const callGraphFixture = require('../../../callgraph-fixture.json'); // TODO remove me!!!
 
 export = runTest;
 
@@ -53,6 +57,7 @@ interface DepTreeFromResolveDeps extends DepTree {
 
 interface PayloadBody {
   depGraph?: depGraphLib.DepGraph; // missing for legacy endpoint (options.vulnEndpoint)
+  callGraph?: any;
   policy: string;
   targetFile?: string;
   targetFileRelativePath?: string;
@@ -260,6 +265,10 @@ function handleTestHttpErrorResponse(res, body) {
       err = AuthFailedError(userMessage, statusCode);
       err.innerError = body.stack;
       break;
+    case 405:
+      err = new UnsupportedFeatureFlagError('reachableVulns');
+      err.innerError = body.stack;
+      break;
     case 500:
       err = new InternalServerError(userMessage);
       err.innerError = body.stack;
@@ -434,6 +443,18 @@ async function assembleLocalPayloads(
           analytics.add('postPrunedPathsCount', postPruneDepCount);
         }
         body.depGraph = depGraph;
+      }
+
+      // TODO extract?
+      if (options['reachable-vulns'] && packageManager) {
+        const callGraph = checkCallGraph(callGraphFixture, packageManager);
+        // TODO add real graph
+        const callGraphNodeCount = 10; // TODO add real number
+        body.callGraph = callGraph;
+        debug(
+          'Adding call graph to payload, node count: ' + callGraphNodeCount,
+        );
+        analytics.add('call graph node count', callGraphNodeCount);
       }
 
       const payload: Payload = {

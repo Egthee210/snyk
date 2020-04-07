@@ -55,6 +55,7 @@ export function formatIssues(
         ' '.repeat(2) +
         formatLegalInstructions(vuln.legalInstructionsArray, 2)
       : '',
+    reachability: vuln.reachability,
   };
 
   return (
@@ -68,7 +69,8 @@ export function formatIssues(
     vulnOutput.dockerfilePackage +
     vulnOutput.fixedIn +
     vulnOutput.extraInfo +
-    vulnOutput.legalInstructions
+    vulnOutput.legalInstructions +
+    vulnOutput.reachability
   );
 }
 
